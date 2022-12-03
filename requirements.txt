@@ -1,0 +1,4 @@
+cryptography==3.4.7
+sqlite3
+fabric
+shutil

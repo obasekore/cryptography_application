@@ -1,0 +1,5 @@
+share_key/*
+temp/*
+*.sqlite
+*_backup/
+*_restore/
