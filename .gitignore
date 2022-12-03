@@ -3,3 +3,4 @@ temp/*
 *.sqlite
 *_backup/
 *_restore/
+*.encrypted
