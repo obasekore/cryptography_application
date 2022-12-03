@@ -8,6 +8,9 @@ from Crypto.PublicKey import RSA
 from Crypto.Random import get_random_bytes
 from Crypto.Cipher import AES, PKCS1_OAEP
 
+import fabric
+from getpass import getpass
+
 import sqlite3
 import os
 import re
@@ -18,7 +21,7 @@ import shutil
 # iv = ""
 # aes_cipher = Cipher(algorithm=algorithms.AES(), mode=modes.GCM())
 class RSA_secure:
-    def __init__(self, email):
+    def __init__(self, email, ):
 
         self.email = email
         self.encrypt_ext = ".encrypted"
@@ -50,8 +53,8 @@ class RSA_secure:
             self.private_key = RSA.import_key(row[self.columns["private_key"]])
             print("[INFO] Loading Public & Private Keys for User {}...".format(row[self.columns["email"]]))
 
-        self.backup_path = email+"_backup/"
-        self.restore_path = email+"_restore/"
+        self.backup_path = email+"_backup" + os.path.sep
+        self.restore_path = email+"_restore" + os.path.sep
         os.makedirs(self.restore_path, exist_ok=True)
         os.makedirs(self.backup_path, exist_ok=True)
 
@@ -85,8 +88,9 @@ class RSA_secure:
 
         encrypted_file = path
         cipher_file = open(encrypted_file, 'rb')
+        temp = path.split(os.path.sep)[-1]
 
-        plain_file = self.restore_path+".".join(path.split(".")[:-1])
+        plain_file = self.restore_path+".".join(temp.split(".")[:-1])
 
         fp_plain_restore = open(plain_file, 'wb')
         private_key = self.private_key
@@ -111,16 +115,19 @@ class RSA_secure:
         shutil.make_archive(output_filename, 'zip', path)
         path = output_filename+".zip"
 
-        os.rmdir(path)
+        
         self._encrypt_file(path=path)
         # fp = open(path, "rb")
         # plain_content = fp.read()
-        
+        os.remove(path)
         pass
 
     def _decrypt_folder(self, path):
         restore_path = self._decrypt_file(path=path)
-        shutil.unpack_archive(restore_path)
+        temp = ".".join(restore_path.split(".")[:-1])
+        print(temp)
+        shutil.unpack_archive(restore_path, temp)
+        os.remove(restore_path)
         pass
     def encrypt(self, path):
         if os.path.isdir(path):
@@ -141,11 +148,23 @@ class RSA_secure:
         self.cur.close()
         pass
 
-    def share_key(self, path = "share_key/"):
-        fp = open(path + self.email + "_receiver.pem", "wb")
+    def share_key(self, path = "share_key"+os.path.sep, ssh_config = None):
+
+        local_path = path + self.email + "_receiver.pem"
+        fp = open(local_path, "wb")
         fp.write(self.public_key.export_key())
         fp.close()
 
+        if ssh_config is not None:
+            print("[INFO] Sending Key to Remote Server")
+            remote_path = ".ssh/{}".format(self.email + "_receiver.pem")
+
+            c = fabric.Connection(ssh_config["IP"], port=ssh_config["PORT"], user=ssh_config["USER"], connect_kwargs={'password': ssh_config["PWD"]})
+            
+            c.put(local_path, remote=remote_path)
+
+            pass
+        print("[INFO] Key Successully Shared")
         self.cur.close()
         pass
 
@@ -191,11 +210,24 @@ def main():
             encrypted_file = input("Enter the plain file/folder: ")
             user_rsa.encrypt(encrypted_file)
         elif choice == 2:
-            encrypted_file = input("Enter the encrypted file/folder: ")
+            encrypted_file = input("Enter the encrypted file: ")
             user_rsa.decrypt(encrypted_file)
         elif choice == 3:
-            ip = ""
-            user_rsa.share_key()
+            prompt = input("Do you want to send key to remote server? (Y/N) ")
+            ssh_config = None
+            if prompt.lower() == "y":
+                IP = input("Enter the remote IP: (e.g. 127.0.0.1) ")
+                USER = input("Enter the remote username: (e.g. root) ")
+                # PORT = input("Enter the remote IP: (e.g. 127.0.0.1) ")
+                
+                PWD = getpass("Enter the server's password: ")
+                ssh_config = {
+                    "IP": IP,
+                    "USER": USER,
+                    "PORT":22,
+                    "PWD": PWD
+                }
+            user_rsa.share_key(ssh_config=ssh_config)
             pass
     pass
 
