@@ -21,10 +21,11 @@ import shutil
 # iv = ""
 # aes_cipher = Cipher(algorithm=algorithms.AES(), mode=modes.GCM())
 class RSA_secure:
-    def __init__(self, email, ):
+    def __init__(self, email ):
 
         self.email = email
         self.encrypt_ext = ".encrypted"
+        self.archive = "zip"
         self.columns = {"email":0, "public_key":1, "private_key":2}
         # create database for users
         conn = sqlite3.connect('userdb.sqlite')
@@ -66,8 +67,8 @@ class RSA_secure:
         # read the 
         fp_plain = open(path, 'rb')
         plain_fp_content = fp_plain.read()
-
-        fp_cipher = open(self.backup_path + path + self.encrypt_ext, 'wb')
+        fileName = path.split(os.path.sep)[-1] + self.encrypt_ext
+        fp_cipher = open(self.backup_path + fileName, 'wb')
 
         # plain = plain_fp_content.encode('utf-8')
         aes_key = token_bytes(32)
@@ -112,8 +113,8 @@ class RSA_secure:
         
         # zip
         output_filename = path
-        shutil.make_archive(output_filename, 'zip', path)
-        path = output_filename+".zip"
+        shutil.make_archive(output_filename, self.archive, path)
+        path = output_filename+"."+self.archive
 
         
         self._encrypt_file(path=path)
@@ -130,17 +131,42 @@ class RSA_secure:
         os.remove(restore_path)
         pass
     def encrypt(self, path):
+        
+
+        time_of_last_modified = os.path.getmtime(path)
+        
         if os.path.isdir(path):
+            last_backup = os.path.join(self.backup_path, path + "." + self.archive + self.encrypt_ext)
+            print("[INFO] Checking for your backup histories ", last_backup)
+            if os.path.exists(last_backup): # works for folder
+                print("[INFO] Found a backup.")
+                time_of_last_backup = os.path.getmtime(last_backup)
+                diff = time_of_last_backup - time_of_last_modified
+                if diff > 0:
+                    print("[INFO] The source has not been recently modified.")
+                    exit()
+
             self._encrypt_folder(path)
         else:
-            self._encrypt_file(path)
+            fileName = path.split(os.path.sep)[-1]
+            last_backup = os.path.join(self.backup_path, fileName + self.encrypt_ext)
+            if os.path.exists(last_backup): # works for file
+                print("[INFO] Found a backup.")
+                time_of_last_backup = os.path.getmtime(last_backup)
+                diff = time_of_last_backup - time_of_last_modified
+                print("Time of last backup {}\nTime of last modification {}".format(time_of_last_backup,time_of_last_modified))
+                if diff > 0:
+                    print("[INFO] The source has not been recently modified.")
+                    exit()
 
+            self._encrypt_file(path)
+        print("[INFO] Previous backup has been overwritten.")
         self.cur.close()
         print("[INFO] Encryption Completed Check Your Backup Folder: ", self.backup_path)
         pass
     def decrypt(self, path):
 
-        if (path.find("zip"))>0:
+        if (path.find(self.archive))>0:
             self._decrypt_folder(path)
         else:
             self._decrypt_file(path=path)
@@ -207,14 +233,26 @@ def main():
             choice = int(input("Choose from the menu (e.g. 1) "))
         
         if choice == 1:
+
             encrypted_file = input("Enter the plain file/folder: ")
+            if(not os.path.exists(encrypted_file)):
+                print("[ERR] File or Folder Does Not Exist !")
+                exit()
             user_rsa.encrypt(encrypted_file)
+
         elif choice == 2:
+
             encrypted_file = input("Enter the encrypted file: ")
+            if(not os.path.exists(encrypted_file)):
+                print("[ERR] File or Folder Does Not Exist !")
+                exit()
             user_rsa.decrypt(encrypted_file)
+
         elif choice == 3:
+
             prompt = input("Do you want to send key to remote server? (Y/N) ")
             ssh_config = None
+
             if prompt.lower() == "y":
                 IP = input("Enter the remote IP: (e.g. 127.0.0.1) ")
                 USER = input("Enter the remote username: (e.g. root) ")
@@ -228,9 +266,10 @@ def main():
                     "PWD": PWD
                 }
             user_rsa.share_key(ssh_config=ssh_config)
+
             pass
     pass
 
 if __name__ == "__main__":
-
+# 
     main()
