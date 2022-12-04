@@ -39,13 +39,13 @@ class RSA_secure:
             key = RSA.generate(2048)
 
             # write private key to file
-            self.private_key = key.export_key()
+            self.private_key = key
 
             # write public key to file
-            self.public_key = key.publickey().export_key()
+            self.public_key = key.publickey()
 
             self.cur.execute('''INSERT INTO Users (email, public_key, private_key)
-                VALUES (?, ?, ?)''', (email, self.public_key, self.private_key))
+                VALUES (?, ?, ?)''', (email, self.public_key.export_key(), self.private_key.export_key()))
 
             print("[INFO] New Public & Private Keys Generated for User {}...".format(email))
         else:
