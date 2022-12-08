@@ -1,11 +1,10 @@
-## Requirements
+## Installation
 
 - Python 3.6
-- 
+- pip install -r requirements.txt
 
-## Dependencies
+## Execute
 
-- cryptography==3.4.7
-- 
+- python cryptographyApp.py
 
-
+my_samples

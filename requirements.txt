@@ -1,4 +1,4 @@
-cryptography==3.4.7
+pycryptodome
 sqlite3
 fabric
 shutil
