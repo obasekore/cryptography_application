@@ -1,4 +1,2 @@
 pycryptodome
-sqlite3
 fabric
-shutil
