@@ -4,3 +4,4 @@ temp/*
 *_backup/
 *_restore/
 *.encrypted
+grain-algorithm.md
