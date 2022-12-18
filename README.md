@@ -8,3 +8,9 @@
 - python cryptographyApp.py
 
 my_samples
+
+### Using docker
+
+`docker build -t cryptography-app . `
+
+`docker run -it --rm -v "$PWD":/cryptographyApp --name crypt cryptography-app`
